@@ -1,17 +1,17 @@
+const pusher_key = '12c789964f052a8c2e77';
+const bucket_id = 'kintochat';
+const user_pass = 'kintochat:tahcotnik';
+const kinto_url = 'https://kinto.ticabri.com/v1/';
+
 function s4() {
   return Math.floor((1 + Math.random()) * 0x10000)
     .toString(16)
     .substring(1);
 }
 
-function guid() {
-  return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
-    s4() + '-' + s4() + s4() + s4();
-}
-
 class KintoChat {
   constructor() {
-    this.bucketName = 'kintochat';
+    this.bucketName = bucket_id;
     this.collectionName = window.location.hash.slice(1);
     this.userName = `Guest#${s4()}`
 
@@ -28,7 +28,7 @@ class KintoChat {
 
     // Pusher
     Pusher.logToConsole = true;
-    var pusher = new Pusher('12c789964f052a8c2e77', {
+    var pusher = new Pusher(pusher_key, {
       encrypted: true
     });
     const channelName = `${this.bucketName}-${this.collectionName}-record`;
@@ -41,39 +41,44 @@ class KintoChat {
     console.log('setup kinto...');
     const options = {
       headers: {
-        Authorization: `Basic ${btoa('kintochat:tahcotnik')}`
+        Authorization: `Basic ${btoa(user_pass)}`
       }
     } 
 
-    const client = new KintoClient('https://kinto.ticabri.com/v1/', options);
-    
-    client.createBucket(this.bucketName, {
-      safe: true,
-      permissions: {
-        "collection:create": ['system.Authenticated']
-      }
-    })
-    .then(() => {
-      client.bucket(this.bucketName).setPermissions({
-        'write': []
-      }, {patch: true});
-    })
-    .catch((e) => console.debug('Skipping bucket creation, it probably already exist.', e));
+    const client = new KintoClient(kinto_url, options);
 
-    client.bucket(this.bucketName).createCollection(this.collectionName, {
-      permissions: {
-        "record:create": ["system.Authenticated"]
-      }
-    })
-    .then(({data}) => {
-      this.collectionID = data.id
-    })
-    .catch(console.error);
+    const promises = [];
 
-    client.bucket(this.bucketName).collection(this.collectionName)
-      .listRecords()
-      .then(({data}) => data.reverse())
-      .then(data => data.forEach(this.displayMessage.bind(this)));
+    promises.push(client.createBucket(this.bucketName, {
+        safe: true,
+        permissions: {
+          "collection:create": ['system.Authenticated']
+        }
+      })
+      .then(() => {
+        client.bucket(this.bucketName).setPermissions({
+          'write': []
+        }, {patch: true});
+      })
+      .catch((e) => console.debug('Skipping bucket creation, it probably already exist.')));
+
+    promises.push(client.bucket(this.bucketName).createCollection(this.collectionName, {
+        permissions: {
+          "record:create": ["system.Authenticated"]
+        }
+      })
+      .then(({data}) => {
+        this.collectionID = data.id
+      })
+      .catch(console.error));
+
+    Promise.all(promises)
+      .then(() => {
+        client.bucket(this.bucketName).collection(this.collectionName)
+          .listRecords()
+          .then(({data}) => data.reverse())
+          .then(data => data.forEach(this.displayMessage.bind(this)));
+      });
 
     return client;
   }
