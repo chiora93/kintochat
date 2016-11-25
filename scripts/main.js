@@ -11,7 +11,7 @@ function guid() {
 
 class KintoChat {
   constructor() {
-    this.bucketName = 'kinto-chat';
+    this.bucketName = 'kintochat';
     this.collectionName = window.location.hash.slice(1);
     this.userName = `Guest#${s4()}`
 
@@ -25,6 +25,16 @@ class KintoChat {
 
     // Events binding
     this.messageForm.addEventListener('submit', this.saveMessage.bind(this));
+
+    // Pusher
+    Pusher.logToConsole = true;
+    var pusher = new Pusher('12c789964f052a8c2e77', {
+      encrypted: true
+    });
+    const channelName = `${this.bucketName}-${this.collectionName}-record`;
+    const channel = pusher.subscribe(channelName);
+    channel.bind('create', data => this.displayMessage(data[0].new));
+
   }
 
   setupKinto() {
@@ -73,9 +83,7 @@ class KintoChat {
     if(this.messageInput.value) {
       console.log(`[save message to kinto] ${this.messageInput.value}`);
       this.client.bucket(this.bucketName).collection(this.collectionName)
-        .createRecord({author: this.userName, message: this.messageInput.value})
-        .then(result => result.data)
-        .then(this.displayMessage.bind(this));
+        .createRecord({author: this.userName, message: this.messageInput.value});
       this.resetMaterialTextField(this.messageInput);
     }
   }
