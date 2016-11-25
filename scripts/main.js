@@ -16,7 +16,7 @@ class KintoChat {
     this.userName = `Guest#${s4()}`
 
     // DOM binding
-    this.messageList = document.getElementById('messages');
+    this.messagesList = document.getElementById('messages');
     this.messageForm = document.getElementById('message-form');
     this.messageInput = document.getElementById('message');
 
@@ -108,7 +108,8 @@ class KintoChat {
   displayMessage({message, author}) {
     var container = document.createElement('div');
     container.innerHTML = this.getMessage(message, author);
-    this.messageList.firstChild.appendChild(container.firstChild);
+    this.messagesList.firstChild.appendChild(container.firstChild);
+    this.messagesList.scrollTop = this.messagesList.scrollHeight - this.messagesList.getBoundingClientRect().height;
   }
 
 }
